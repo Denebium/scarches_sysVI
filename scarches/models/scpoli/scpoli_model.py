@@ -314,18 +314,16 @@ class scPoli(BaseMixin):
         adata,
         mean: bool = False,
     ):
-        """Map `x` in to the latent space. This function will feed data in encoder  and return  z for each sample in
-        data.
-
-         Parameters
-         ----------
-         x
-             Numpy nd-array to be mapped to latent space. `x` has to be in shape [n_obs, input_dim].
-         c
-             `numpy nd-array` of original (unencoded) desired labels for each sample.
-         mean
+        """
+        Map `x` in to the latent space using the encoder network
+        Parameters
+        ----------
+        x:
+             Input data matrix
+        c:
+             Condition onehot matrix
+        mean:
              return mean instead of random sample from the latent space
-
         Returns
         -------
              Returns array containing latent space encoding of 'x'.
@@ -344,12 +342,12 @@ class scPoli(BaseMixin):
                 for condition, label in self.model.condition_encoders[cond].items():
                     labels[query_conditions == condition] = label
                 label_tensor.append(labels)
-            c = torch.tensor(label_tensor, device=device).T
+            c = torch.tensor(np.stack(label_tensor), device=device).T
  
         latents = []
         # batch the latent transformation process
-        indices = torch.arange(x.shape[0])
-        subsampled_indices = indices.split(512)
+        indices = np.arange(x.shape[0])
+        subsampled_indices = np.array_split(indices, max(1, len(indices) // 512 + 1))
         for batch in subsampled_indices:
             x_batch = x[batch, :]
             if sparse.issparse(x_batch):
@@ -451,7 +449,7 @@ class scPoli(BaseMixin):
                     for condition, label in self.model.condition_encoders[cond].items():
                         labels[query_conditions == condition] = label
                     label_tensor.append(labels)
-                c = torch.tensor(label_tensor, device=device).T
+                c = torch.tensor(np.stack(label_tensor), device=device).T
         else:
             x = adata
 
@@ -566,7 +564,7 @@ class scPoli(BaseMixin):
                 for condition, label in self.model.condition_encoders[cond].items():
                     labels[query_conditions == condition] = label
                 label_tensor.append(labels)
-            c = torch.tensor(label_tensor, device=device).T
+            c = torch.tensor(np.stack(label_tensor), device=device).T
 
         if sparse.issparse(x):
             x = x.toarray()
